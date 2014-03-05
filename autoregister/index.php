@@ -11,9 +11,9 @@ Plugin update URI: autoregister
 */
 
     /**
-     * Set plugin preferences 
+     * Set plugin preferences
      */
-    function autoregister_install() 
+    function autoregister_install()
     {
         // read email template for new autoregister
         $content = file_get_contents( osc_plugins_path() . osc_plugin_folder(__FILE__).'autoregister_new_user_info' );
@@ -36,21 +36,21 @@ Plugin update URI: autoregister
     }
 
     /**
-     * Delete plugin preferences 
+     * Delete plugin preferences
      */
-    function autoregister_uninstall() 
+    function autoregister_uninstall()
     {
         $s_internal_name    = 'autoregister_new_user_info';
         Page::newInstance()->deleteByInternalName($s_internal_name);
     }
-    
-    function autoregister_create_new_user($catId, $itemId)
+
+    function autoregister_create_new_user($itemId)
     {
-        // check if exist user id 
-        $item = Item::newInstance()->findByPrimaryKey($itemId);
+        // check if exist user id
+        $item = Item::newInstance()->findByPrimaryKey($itemId['pk_i_id']);
         // if not exist user
         if( $item['fk_i_user_id'] == NULL ) {
-            // create new user + send email 
+            // create new user + send email
             $name  = $item['s_contact_name'];
             $email = $item['s_contact_email'];
             // prepare data for register user
@@ -62,9 +62,9 @@ Plugin update URI: autoregister
             $input['s_email']        = Params::getParam('s_email') ;
             Params::setParam('s_email', $email ); // from inserted item
             $input['s_password']     = Params::getParam('s_password') ;
-            Params::setParam('s_password', $aux_password );  // generated 
+            Params::setParam('s_password', $aux_password );  // generated
             $input['s_password2']    = Params::getParam('s_password2') ;
-            Params::setParam('s_password2', $aux_password ); // generated 
+            Params::setParam('s_password2', $aux_password ); // generated
             $input['s_website']      = Params::getParam('s_website') ;
             Params::setParam('s_website', '');
             $input['s_phone_land']   = Params::getParam('s_phone_land') ;
@@ -83,11 +83,11 @@ Plugin update URI: autoregister
             Params::setParam('address', '');
             $input['b_company']      = (Params::getParam('b_company') != '' && Params::getParam('b_company') != 0) ? 1 : 0 ;
             Params::setParam('b_company', '0');
-                        
+
             require_once LIB_PATH . 'osclass/UserActions.php' ;
             $userActions = new UserActions(false) ;
             $success     = $userActions->add() ;
-            
+
             switch($success) {
                 case 1: osc_add_flash_ok_message( _m('The user has been created. An activation email has been sent')) ;
                         $success = true;
@@ -120,13 +120,13 @@ Plugin update URI: autoregister
                 $item = Item::newInstance()->findByPrimaryKey($itemId);
 
                 autoregister_sendMail($email, $user, $aux_password);
-                
+
                 // not activated
                 if( $item['b_active'] != 1 ) {
                     osc_run_hook('hook_email_item_validation', $item);
                 }
             }
-            
+
             // set params again
             Params::setParam('s_name', $input['s_name']);
             Params::setParam('s_email', $input['s_email']);
@@ -134,7 +134,7 @@ Plugin update URI: autoregister
             Params::getParam('s_password2', $input['s_password2']) ;
             Params::setParam('s_website', $input['s_website']);
             Params::setParam('s_phone_land',    $input['s_phone_land']);
-            Params::setParam('s_phone_mobile',  $input['s_phone_mobile']); 
+            Params::setParam('s_phone_mobile',  $input['s_phone_mobile']);
             Params::setParam('countryId',   $input['countryId']);
             Params::setParam('regionId',    $input['regionId']);
             Params::setParam('cityId',      $input['cityId']);
@@ -144,7 +144,7 @@ Plugin update URI: autoregister
             // end
         }
     }
-    
+
     function autoregister_sendMail( $email, $user, $aux_password ){
         /* code sendMail */
         $aPage = Page::newInstance()->findByInternalName('autoregister_new_user_info');
@@ -195,9 +195,9 @@ Plugin update URI: autoregister
      */
     osc_register_plugin(osc_plugin_path(__FILE__), 'autoregister_install');
     osc_add_hook(osc_plugin_path(__FILE__)."_uninstall", 'autoregister_uninstall');
-    
+
     // remove hook no user registered
     osc_remove_hook('hook_email_new_item_non_register_user', 'fn_email_new_item_non_register_user');
-    
-    osc_add_hook('item_form_post', 'autoregister_create_new_user');
+
+    osc_add_hook('posted_item', 'autoregister_create_new_user');
 ?>
